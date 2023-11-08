@@ -1,2 +1,51 @@
 ---
-# tasks file for snowball-client
+
+- name: Pull SnowBall Edge Client
+  become: true
+  ansible.builtin.unarchive:
+    src: "https://snowball-client.s3.us-west-2.amazonaws.com/latest/snowball-client-linux.tar.gz"
+    dest: "/usr/local/bin/"
+    remote_src: true
+
+- name: find dirs
+  ansible.builtin.find:
+    path: "/usr/local/bin/"
+    recurse: false
+    patterns: ".*snowball-client-linux.*"
+    file_type: directory
+    use_regex: true
+  register: snowball_dir_info
+
+- name: Add another bin dir to system-wide $PATH.
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/profile.d/snowballEdge.sh
+    content: 'PATH=$PATH:{{ snowball_dir_info.files[0].path }}/bin'
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Find snowball bash completion file
+  ansible.builtin.find:
+    path: "{{ snowball_dir_info.files[0].path }}"
+    patterns: "snowballEdge_completion"
+    file_type: file
+    use_regex: true
+  register: snowball_completion_file
+
+- name: Restore SELinux context on snowball binary
+  become: true
+  ansible.builtin.command: "restorecon -vR {{ snowball_dir_info.files[0].path }}"
+
+- name: Copy snowball bash completion file to /usr/share/bash-completion/completions/
+  become: true
+  ansible.builtin.copy:
+    src: "{{ snowball_completion_file.files[0].path }}"
+    dest: "/usr/share/bash-completion/completions/"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Restore SELinux context on snowball bash completion file
+  become: true
+  ansible.builtin.command: restorecon -v /usr/share/bash-completion/completions/snowballEdge_completion
