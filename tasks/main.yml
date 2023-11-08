@@ -36,6 +36,7 @@
 - name: Restore SELinux context on snowball binary
   become: true
   ansible.builtin.command: "restorecon -vR {{ snowball_dir_info.files[0].path }}"
+  when: (ansible_distribution == 'RedHat')
 
 - name: Copy snowball bash completion file to /usr/share/bash-completion/completions/
   become: true
@@ -49,3 +50,4 @@
 - name: Restore SELinux context on snowball bash completion file
   become: true
   ansible.builtin.command: restorecon -v /usr/share/bash-completion/completions/snowballEdge_completion
+  when: (ansible_distribution == 'RedHat')
